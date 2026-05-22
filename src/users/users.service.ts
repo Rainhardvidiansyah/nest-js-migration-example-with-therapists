@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { Inject, Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { UsersEntity } from './users.entity';
 import { comparePassword, encodePassword } from '../utils/password.encoder';
 
@@ -9,7 +9,10 @@ import { comparePassword, encodePassword } from '../utils/password.encoder';
 export class UsersService {
     
     
-    constructor(@Inject("USERS_REPOSITORY") private userRepository: Repository<UsersEntity>) {}
+    constructor(
+        @Inject('DATA_SOURCE') private readonly dataSource: DataSource,
+        @Inject('USERS_REPOSITORY') private userRepository: Repository<UsersEntity>, 
+        ) {}
 
 
   //CREATE NEW USER
@@ -28,31 +31,33 @@ export class UsersService {
 
 
     //FIND USER BY EMAIL
-    async findByEmail(email: string): Promise<UsersEntity | null> {
+    async findByEmail(email: string): Promise<UsersEntity> {
+        
         if (!email) {
             throw new Error('Email must be provided');
         }
-        const user = await this.userRepository.findOne({ where: { email } });
+
+        const user = await this.dataSource.getRepository(UsersEntity)
+
+        .createQueryBuilder('user')
+        .where('user.email = :email', { email: email })
+        .getOne();
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
         return user;
     }
 
 
-    //FIND USER BY EMAIL AND PASSWORD
-    async findUserByEmail(email: string, password: string): Promise<UsersEntity> {
-        console.log('Finding user by email and password');
-        const user = await this.userRepository.findOne({ where: { email } });
+    //FIND ALL USERS
+    async findAll(): Promise<UsersEntity[]> {
+        return this.userRepository.find();
+    }
 
-        if (!user || !user.password) {
-        throw new Error('Invalid credentials');
-    }
-    const isMatch = await comparePassword(password, user.password);
+
     
-    if (!isMatch) {
-        throw new Error('Invalid credentials');
-    }
-    
-    return user;
-    }
 
 
 }
