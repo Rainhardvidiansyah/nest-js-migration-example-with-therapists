@@ -1,55 +1,106 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable prettier/prettier */
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { JwtService } from '@nestjs/jwt';
-import { UsersEntity } from 'src/users/users.entity';
-import { UsersService } from 'src/users/users.service';
-import { comparePassword } from 'src/utils/password.encoder';
+import { UsersService } from '../users/users.service';
+import { comparePassword } from '../utils/password.encoder';
+import { UsersEntity } from '../users/users.entity';
+
+
+
 
 @Injectable()
 export class AuthService {
 
 
-  constructor(private usersService: UsersService, private jwtService: JwtService, private configService: ConfigService) {}
+
+  private readonly logger = new Logger(AuthService.name);
+
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    private readonly userService: UsersService
+  ){}
 
 
-  //LOGIN USER METHOD
-  async login(email: string, password: string) {
-    const user = await this.validateUser(email, password);
-    const token = this.generateToken(user);
-    return token;
-  }
 
-  //VALIDATE USER DURING SIGN IN
-  private async validateUser(email: string, password: string): Promise<UsersEntity> {
+  async validateUser(email: string, password: string): Promise<UsersEntity> {
 
-    const user = await this.usersService.findUserByEmail(email, password);
+    const user = await this.userService.findByEmail(email);
 
-    const isPasswordMatching = await comparePassword(password, user.password);
-
-    if (!isPasswordMatching) {
-      throw new UnauthorizedException('Invalid credentials');
+    const isPasswordValid = await comparePassword(password, user.password);
+    
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid email or password');
     }
-      
+
     return user;
   }
 
 
+  //GENERATE ACCESS TOKEN
+  async generateToken(id: string, email: string, role: string[]): Promise<{access_token: string}> {
 
-  //GENERATE JWT TOKEN AFTER SIGN IN
-  private async generateToken(user: UsersEntity): Promise<{ access_token: string }> {
-    
-    const payload = { sub: user.id, email: user.email };
+    const payload = { sub: email, id: id, role: role };
+
+
     const generatedToken = await this.jwtService.signAsync(payload, {
-      secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
-      expiresIn: this.configService.get<number>('JWT_ACCESS_EXPIRES_IN'),
-    })
-
-    return {access_token: generatedToken};
+      secret: this.configService.get<string>('JWT_SECRET'),
+      expiresIn: this.configService.get<number>('JWT_TOKEN_EXPIRES_IN'),
+    });
+    
+    return {
+      access_token: generatedToken,
+    }; 
   }
 
-  
+
+
+  //GENERATE REFRESH TOKEN
+  async refreshToken(id: string, email: string, role: string[]): Promise<{access_token: string}> {
+
+    const payload = { sub: email, id: id, role: role };
+
+    const generatedRefreshToken = await this.jwtService.signAsync(payload, {
+      secret: this.configService.get<string>('REFRESH_TOKEN_SECRET'),
+      expiresIn: this.configService.get<number>('REFRESH_TOKEN_EXPIRES_IN'),
+    });
+
+    return {
+      access_token: generatedRefreshToken,
+    }
+  }
+
+
+
+
+  //VERIFY TOKEN
+  async decodeToken(token: string): Promise<{ sub: number; email: string, roles: string[] }> {
+    try{
+      const decodedToken = await this.jwtService.verify(token,
+        {
+          secret: this.configService.get<string>("REFRESH_TOKEN_SECRET"),
+        }
+      )
+      const {sub, email, roles} = decodedToken;
+      
+      this.logger.warn(`DECODED TOKEN METHOD [SUB] - AUTH SERVICE CLASS: ${sub}`);
+      this.logger.log(`DECODED TOKEN METHOD [EMAIL]: ${email}`);
+      this.logger.log(`DECODED TOKEN METHOD [ROLES]: ${roles}`);
+      
+      return {sub, email, roles};
+    
+    }catch(error){
+      this.logger.error("Invalid refresh token", error);
+      
+      throw new UnauthorizedException("Invalid refresh token");
+    }
+  }
+
+
+
 }
 
+//TODO: Implement refresh token logic,
+// store refresh tokens in database, 
+// and implement token revocation logic.
