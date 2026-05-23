@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpStatus, Logger, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Logger, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { Public } from '../common/decorators/public-decorators';
@@ -18,6 +18,7 @@ export class AuthController {
 
   @Public()
   @Post('login')
+  @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto, @Res({passthrough: true}) res) {
 
     const data = await this.authService.validateUser(loginDto);
@@ -45,6 +46,7 @@ export class AuthController {
 
   @Public()
   @Post('refresh')
+  @HttpCode(HttpStatus.OK)
   async generateNewToken(@Req() req, @Res({ passthrough: true }) res) {
     
     const refreshToken = req.cookies?.refresh_token;
@@ -83,6 +85,7 @@ export class AuthController {
   
 
   @Get('profile')
+  @HttpCode(HttpStatus.OK)
   async profile(@Req() req) {
     const user = req.user; //Assuming the user information is attached to the request object by an authentication middleware
     return {
