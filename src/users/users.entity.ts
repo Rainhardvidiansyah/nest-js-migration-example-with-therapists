@@ -1,4 +1,5 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, Index, JoinTable, ManyToMany, PrimaryGeneratedColumn, Table, UpdateDateColumn } from "typeorm";
+import { RolesEntity } from "../roles/roles.entity";
 
 
 @Entity('users')
@@ -19,18 +20,32 @@ export class UsersEntity {
   password: string;
 
   @Column({ default: 'local' })
-  provider: 'local' | 'google' | 'github';
+  provider!: 'local' | 'google' | 'github';
 
   @Column({ nullable: true })
-  providerId: string;
+  providerId!: string;
 
   @Column({ default: false })
-  isActive: boolean;
+  isActive!: boolean;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
+
+  @ManyToMany(() => RolesEntity, (role) => role.users)
+  @JoinTable({
+    name: 'users_roles', 
+    joinColumn: {
+      name: 'user_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'role_id', 
+      referencedColumnName: 'id',
+    },
+  })
+  roles: RolesEntity[];
 
 }

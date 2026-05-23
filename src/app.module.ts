@@ -1,16 +1,17 @@
-/* eslint-disable prettier/prettier */
 import { Module } from '@nestjs/common';
-// import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TherapistsModule } from './therapists/therapists.module';
 import { DatabaseModule } from './database/database.module';
+import { RolesModule } from './roles/roles.module';
+import { ProductsModule } from './products/products.module';
 
 @Module({
   imports: [
-    DatabaseModule, 
-    AuthModule, UsersModule,
+    DatabaseModule, AuthModule, 
+    UsersModule, TherapistsModule,
+    RolesModule, ProductsModule,
 
     ConfigModule.forRoot({ 
         isGlobal: true,
@@ -22,7 +23,7 @@ import { DatabaseModule } from './database/database.module';
         ignoreEnvFile: false,
       }),
 
-    TherapistsModule,
+    
   ],
 
   
