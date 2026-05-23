@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { comparePassword } from '../utils/password.encoder';
-import { UsersEntity } from '../users/users.entity';
+import { LoginDto } from './dto/login.dto';
 
 
 
@@ -24,8 +24,10 @@ export class AuthService {
 
 
 
-  async validateUser(email: string, password: string): Promise<UsersEntity> {
+  async validateUser(loginDto: LoginDto){
 
+    const { email, password } = loginDto;
+    
     const user = await this.userService.findByEmail(email);
 
     const isPasswordValid = await comparePassword(password, user.password);
@@ -34,15 +36,26 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    return user;
+    let roles = user.roles.map(roles => roles.roleName);
+
+    const generatedToken = await this.generateToken(user.id, user.email, roles);
+
+    const generatedRefreshToken = await this.generateRefreshToken(user.id, user.email, roles);
+
+    return {
+      id: user.id,
+      email: user.email,
+      roles: roles,
+      access_token: generatedToken.access_token,
+      refresh_token: generatedRefreshToken.refresh_token,
+    };
   }
 
 
   //GENERATE ACCESS TOKEN
-  async generateToken(id: string, email: string, role: string[]): Promise<{access_token: string}> {
+  async generateToken(id: string, email: string, roles: string[]): Promise<{access_token: string}> {
 
-    const payload = { sub: email, id: id, role: role };
-
+    const payload = { sub: id, email: email, roles: roles };
 
     const generatedToken = await this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('JWT_SECRET'),
@@ -51,15 +64,15 @@ export class AuthService {
     
     return {
       access_token: generatedToken,
-    }; 
+    };
   }
 
 
 
   //GENERATE REFRESH TOKEN
-  async refreshToken(id: string, email: string, role: string[]): Promise<{access_token: string}> {
+  private async generateRefreshToken(id: string, email: string, roles: string[]): Promise<{refresh_token: string}> {
 
-    const payload = { sub: email, id: id, role: role };
+    const payload = {sub: id, email: email, roles: roles};
 
     const generatedRefreshToken = await this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('REFRESH_TOKEN_SECRET'),
@@ -67,40 +80,42 @@ export class AuthService {
     });
 
     return {
-      access_token: generatedRefreshToken,
-    }
+      refresh_token: generatedRefreshToken,
+    };
   }
 
 
 
 
   //VERIFY TOKEN
-  async decodeToken(token: string): Promise<{ sub: number; email: string, roles: string[] }> {
+  async validateRefreshToken(refreshToken: string) {
+
+    if (!refreshToken) {
+      throw new UnauthorizedException('Token not found or invalid format');
+    }
+
     try{
-      const decodedToken = await this.jwtService.verify(token,
+      const decodedRefreshToken = await this.jwtService.verify(refreshToken,
         {
           secret: this.configService.get<string>("REFRESH_TOKEN_SECRET"),
         }
-      )
-      const {sub, email, roles} = decodedToken;
+      );
+
+      const {sub, email, roles} = decodedRefreshToken;
       
-      this.logger.warn(`DECODED TOKEN METHOD [SUB] - AUTH SERVICE CLASS: ${sub}`);
-      this.logger.log(`DECODED TOKEN METHOD [EMAIL]: ${email}`);
-      this.logger.log(`DECODED TOKEN METHOD [ROLES]: ${roles}`);
-      
+      this.logger.log(`content of decoded refresh token: ${JSON.stringify(decodedRefreshToken)} - in validateRefreshToken method`);
+
       return {sub, email, roles};
     
     }catch(error){
       this.logger.error("Invalid refresh token", error);
-      
       throw new UnauthorizedException("Invalid refresh token");
     }
   }
 
-
-
+ 
 }
 
 //TODO: Implement refresh token logic,
-// store refresh tokens in database, 
-// and implement token revocation logic.
+// store refresh tokens in database (?), 
+// and implement token revocation logic
