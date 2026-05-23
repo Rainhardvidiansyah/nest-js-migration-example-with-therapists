@@ -41,6 +41,7 @@ export class UsersService {
 
         .createQueryBuilder('user')
         .where('user.email = :email', { email: email })
+        .leftJoinAndSelect('user.roles', 'roles')
         .getOne();
 
         if (!user) {
