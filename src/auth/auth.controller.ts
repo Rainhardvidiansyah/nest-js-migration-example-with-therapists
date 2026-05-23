@@ -21,9 +21,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto, @Res({passthrough: true}) res) {
 
-    const data = await this.authService.validateUser(loginDto);
+    const userData = await this.authService.validateUser(loginDto);
 
-    res.cookie('refresh_token', data.refresh_token, {
+    res.cookie('refresh_token', userData.refresh_token, {
       httpOnly: true,
       secure: false,
       sameSite: 'strict',
@@ -35,11 +35,11 @@ export class AuthController {
       message: 'Login successful',
       httpStatus: 200,
       userData: {
-        id: data.id,
-        email: data.email,
-        roles: data.roles
+        id: userData.id,
+        email: userData.email,
+        roles: userData.roles
       },
-      access_token: data.access_token
+      access_token: userData.access_token
     };
   }
 
