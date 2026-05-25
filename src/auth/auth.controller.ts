@@ -6,6 +6,7 @@ import { RegisterLocalDto } from './dto/register-local.dto';
 import { RegisterResponseDto } from './dto/registration-response.dto';
 import { ResponseMessage } from '../common/decorators/response-message.decorators';
 import { LoginResponseDto } from './dto/login-response.dto';
+import { GenerateNewTokenResponse } from './dto/generate-new-token-response.dto';
 
 
 @Controller('auth')
@@ -54,12 +55,12 @@ export class AuthController {
 
 
   @Public()
+  @ResponseMessage('Token refreshed successfully')
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async generateNewToken(@Req() req, @Res({ passthrough: true }) res) {
     
     const refreshToken = req.cookies?.refresh_token;
-
 
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token not found');
@@ -79,16 +80,8 @@ export class AuthController {
       payload.roles,
     );
 
-    return {
-      message: 'Token refreshed successfully',
-      httpStatus: 200,
-      userData: {
-        id: payload.sub,
-        email: payload.email,
-        roles: payload.roles,
-      },
-      new_access_token: newAccessToken.access_token,
-    };
+    return new GenerateNewTokenResponse(payload, newAccessToken.access_token)
+
   }
   
   
