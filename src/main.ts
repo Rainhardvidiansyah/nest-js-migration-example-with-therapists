@@ -1,11 +1,27 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
+import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
+import { TransformInterceptor } from './common/interceptors/transform-interceptors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(cookieParser());
+
+
+  app.useGlobalInterceptors(
+    new TransformInterceptor(app.get(Reflector))
+  );
+
+
+
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    transform: true
+  }));
+
+  
 
   const port = process.env.PORT || 3000;
 

@@ -2,9 +2,15 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Logger, Post, Req, Res, Un
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { Public } from '../common/decorators/public-decorators';
+import { RegisterLocalDto } from './dto/register-local.dto';
+import { RegisterResponseDto } from './dto/registration-response.dto';
+import { ResponseMessage } from '../common/decorators/response-message.decorators';
+import { LoginResponseDto } from './dto/login-response.dto';
+import { GenerateNewTokenResponse } from './dto/generate-new-token-response.dto';
 
 
 @Controller('auth')
+// @UseInterceptors(ClassSerializerInterceptor)
 export class AuthController {
 
   //Following the JWT best practices, I used "sub" as property instead of "id" in the payload. In regarding to JWT things, I will keep using sub in payload, but in the response, I will use id to make it more intuitive for the frontend.
@@ -16,7 +22,21 @@ export class AuthController {
 
 
 
+  @ResponseMessage('User registered successfully')
+  @HttpCode(HttpStatus.CREATED)
   @Public()
+  @Post('register/local')
+  async registerLocal(@Body() registerLocalDto: RegisterLocalDto) {
+
+    const userData = await this.authService.createLocalUser(registerLocalDto);
+    return new RegisterResponseDto(userData);
+  
+  }
+
+
+  
+  @Public()
+  @ResponseMessage('Login success')
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto, @Res({passthrough: true}) res) {
@@ -30,27 +50,17 @@ export class AuthController {
       maxAge: 7 * 24 * 60 * 60 * 1000 // a week in milliseconds. In development, try to set it to a shorter time for testing purposes.
     });
 
-
-    return {
-      message: 'Login successful',
-      httpStatus: 200,
-      userData: {
-        id: userData.id,
-        email: userData.email,
-        roles: userData.roles
-      },
-      access_token: userData.access_token
-    };
+    return new LoginResponseDto(userData)
   }
 
 
   @Public()
+  @ResponseMessage('Token refreshed successfully')
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async generateNewToken(@Req() req, @Res({ passthrough: true }) res) {
     
     const refreshToken = req.cookies?.refresh_token;
-
 
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token not found');
@@ -70,16 +80,8 @@ export class AuthController {
       payload.roles,
     );
 
-    return {
-      message: 'Token refreshed successfully',
-      httpStatus: 200,
-      userData: {
-        id: payload.sub,
-        email: payload.email,
-        roles: payload.roles,
-      },
-      new_access_token: newAccessToken.access_token,
-    };
+    return new GenerateNewTokenResponse(payload, newAccessToken.access_token)
+
   }
   
   

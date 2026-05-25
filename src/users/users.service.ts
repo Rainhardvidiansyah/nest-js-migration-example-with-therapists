@@ -1,8 +1,10 @@
 /* eslint-disable prettier/prettier */
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Inject, Injectable } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { UsersEntity } from './users.entity';
-import { comparePassword, encodePassword } from '../utils/password.encoder';
+import { encodePassword } from '../utils/password.encoder';
+import { CreateUserLocalDto } from './dto/create-user-local.dto';
+import { RolesService } from '../roles/roles.service';
 
 
 @Injectable()
@@ -11,20 +13,30 @@ export class UsersService {
     
     constructor(
         @Inject('DATA_SOURCE') private readonly dataSource: DataSource,
-        @Inject('USERS_REPOSITORY') private userRepository: Repository<UsersEntity>, 
+        @Inject('USERS_REPOSITORY') private userRepository: Repository<UsersEntity>,
+        private readonly rolesService: RolesService
         ) {}
 
 
-  //CREATE NEW USER
-    async createUser(email: string, password: string, provider: 'local' | 'google' | 'github', providerId?: string): Promise<UsersEntity> {
-        const hashedPassword = await encodePassword(password);
+    //CREATE NEW USER FOR LOCAL REGISTRATION
+    async createLocalUser(createUserLocalDto: CreateUserLocalDto): Promise<UsersEntity> {
 
-        if(provider === 'local'){
-            if(!password){
-                throw new Error('Password is required for local provider');
-        }}
+        const isEmailExisting = await this.getUserByEmail(createUserLocalDto.email);
+
+        if(isEmailExisting){
+            throw new ConflictException('Email already exists');
+        }
+
+        if (!createUserLocalDto.password) {
+            throw new BadRequestException('Password is required for local provider');
+        }
+        const hashedPassword = await encodePassword(createUserLocalDto.password);
         
-        const newUser = this.userRepository.create({ email, password: hashedPassword, provider, providerId });
+        const role = await this.rolesService.findRoleByRoleName('customer');
+
+        const newUser = this.userRepository.create({ ...createUserLocalDto, 
+            provider: "local", password: hashedPassword, roles: [role] });
+                
         return this.userRepository.save(newUser);
     }
 
@@ -57,6 +69,12 @@ export class UsersService {
         return this.userRepository.find();
     }
 
+
+    //FIND USER BY EMAIL
+    async getUserByEmail(email: string): Promise<UsersEntity | null>{
+        const user = await this.userRepository.findOne({where: {email: email}});
+        return user;
+    }
 
     
 

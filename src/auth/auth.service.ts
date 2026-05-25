@@ -5,6 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { comparePassword } from '../utils/password.encoder';
 import { LoginDto } from './dto/login.dto';
+import { RegisterLocalDto } from './dto/register-local.dto';
 
 
 
@@ -22,6 +23,10 @@ export class AuthService {
     private readonly userService: UsersService
   ){}
 
+
+  async createLocalUser(registerLocalDto: RegisterLocalDto) {
+    return this.userService.createLocalUser({email: registerLocalDto.email, password: registerLocalDto.password});
+  }
 
 
   async validateUser(loginDto: LoginDto){
