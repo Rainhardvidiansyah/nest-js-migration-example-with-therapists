@@ -8,11 +8,13 @@ import { UsersModule } from '../users/users.module';
 import { DatabaseModule } from '../database/database.module';
 import { AuthGuard } from './auth.guard';
 import { APP_GUARD } from '@nestjs/core';
+import { RedisConfigModule } from 'src/redisconfig/redis-config.module';
 
 @Module({
   imports: [
     UsersModule,
     DatabaseModule,
+    RedisConfigModule,
 
 
     
