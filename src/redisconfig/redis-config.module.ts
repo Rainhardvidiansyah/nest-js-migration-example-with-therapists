@@ -20,8 +20,13 @@ import KeyvRedis from '@keyv/redis';
 
   return {
     stores: [
-      new KeyvRedis(`redis://${host}:${port}`),
-    ],
+      new KeyvRedis(`redis://${host}:${port}?commandTimeout=1000`, {
+        connectionTimeout: 3000,
+        throwOnConnectError: false,
+        throwOnErrors: false
+      })
+ 
+    ]
   };
 },
   inject: [ConfigService],
