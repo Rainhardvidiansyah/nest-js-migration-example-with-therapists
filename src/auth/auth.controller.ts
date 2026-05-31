@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Logger, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Logger, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { Public } from '../common/decorators/public-decorators';
@@ -69,13 +69,13 @@ export class AuthController {
     const validatedToken = await this.authService.validateRefreshToken(refreshToken);
 
     const payload = {
-      sub: validatedToken.sub,
+      id: validatedToken.sub,
       email: validatedToken.email,
       roles: validatedToken.roles, 
     };
 
     const newAccessToken = await this.authService.generateToken(
-      payload.sub,
+      payload.id,
       payload.email,
       payload.roles,
     );
@@ -101,5 +101,27 @@ export class AuthController {
   }
 
   //TODO: LOGOUT ENDPOINT, invalidate refresh token, and implement token revocation logic.
+  @ResponseMessage('Logout successful')
+  @Delete('/logout')
+  @HttpCode(HttpStatus.OK)
+  async logOut(@Res({ passthrough: true }) res, @Req() req){
+
+    const refreshToken = req.cookies?.refresh_token;
+
+    if(!refreshToken){
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    await this.authService.logoutUser(refreshToken);
+
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: false, 
+      sameSite: 'strict',
+    });
+
+    
+
+  }
 
 }
