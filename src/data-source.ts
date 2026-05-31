@@ -27,7 +27,7 @@ export const AppDataSource = new DataSource({
         connectionTimeoutMillis: 5000,
         query_timeout: 5000
     },
-    entities: ["src/**/*.entity.ts"],
+    // entities: ["src/**/*.entity.ts"], //Comment this! or else, it will be searching the entities. It has nothing to do with the entities, cause this file is CLI (migration and run migration) config. 
     migrations: ["src/db/migrations/**/*{.ts,.js}"],
     
     migrationsTableName: "migrations",
