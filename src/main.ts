@@ -2,8 +2,9 @@ import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
-import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { TransformInterceptor } from './common/interceptors/transform-interceptors';
+import { ThrottlerExceptionFilter } from './common/filters/throttler-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -13,6 +14,8 @@ async function bootstrap() {
   app.useGlobalInterceptors(
     new TransformInterceptor(app.get(Reflector))
   );
+
+  app.useGlobalFilters(new ThrottlerExceptionFilter());
 
 
 
