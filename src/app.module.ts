@@ -10,6 +10,7 @@ import { RedisConfigModule } from './redisconfig/redis-config.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
+import { EmailModule } from './email/email.module';
 
 
 @Module({
@@ -43,6 +44,8 @@ import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis'
         ],
         ignoreEnvFile: false,
       }),
+
+    EmailModule,
   ],
   providers: [
     {
