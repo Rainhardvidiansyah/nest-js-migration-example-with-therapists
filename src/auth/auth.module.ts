@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
@@ -17,7 +16,6 @@ import { RedisConfigModule } from 'src/redisconfig/redis-config.module';
     RedisConfigModule,
 
 
-    
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -30,14 +28,7 @@ import { RedisConfigModule } from 'src/redisconfig/redis-config.module';
     }),
     
   ],
-  providers: [
-    AuthService,
-    {
-      provide: APP_GUARD,
-      useClass: AuthGuard,
-    }
-
-  ],
+  providers: [AuthService, {provide: APP_GUARD, useClass: AuthGuard} ],
   controllers: [AuthController],
 })
 export class AuthModule {}
