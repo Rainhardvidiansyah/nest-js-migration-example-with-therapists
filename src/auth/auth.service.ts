@@ -51,10 +51,7 @@ export class AuthService {
 
     const generatedRefreshToken = await this.generateRefreshToken(user.id, user.email, roles);
 
-    await this.redisService.set(
-      RedisCacheKey.REFRESH_TOKEN(user.id), 
-      generatedRefreshToken.refresh_token,
-      RedisTTL.REFRESH_TOKEN);
+    this.setRefreshToken(user.id, generatedRefreshToken.refresh_token);
 
     return {
       id: user.id,
@@ -120,15 +117,10 @@ export class AuthService {
       
       this.logger.log(`content of decoded refresh token: ${JSON.stringify(decodedRefreshToken)} - in validateRefreshToken method`);
 
+      const userId = sub;
+      await this.getRefreshTokenFromRedis(userId, refreshToken);
+
       
-
-      const storedRefreshToken = await this.redisService.get<string>(RedisCacheKey.REFRESH_TOKEN(sub));
-
-    
-      if(!storedRefreshToken || storedRefreshToken !== refreshToken){
-        throw new UnauthorizedException('Invalid token');
-      }
-
       return {sub, email, roles};
     
     }catch(error){
@@ -137,6 +129,8 @@ export class AuthService {
     }
   }
 
+
+  //LOGOUT USER
   async logoutUser(refreshToken: string): Promise<void>{
 
     try {
@@ -146,14 +140,40 @@ export class AuthService {
         }
       );
 
-      const sub = decodedRefreshToken.sub;
+      const userId = decodedRefreshToken.sub;
 
-      await this.redisService.delete(RedisCacheKey.REFRESH_TOKEN(sub));
+      await this.deleteRefreshTokenFromRedis(userId);
+      
 
     } catch (error) {
-      throw new UnauthorizedException("Invalid refresh token");
+      throw new UnauthorizedException("Invalid refresh token hahahaha");
     }
   }
+
+
+  //SET REFRESH TOKEN TO REDIS ==> LOGIN
+  private async setRefreshToken(userId: string, refreshToken: string){
+    await this.redisService.set(
+      RedisCacheKey.REFRESH_TOKEN(userId), 
+      refreshToken,
+      RedisTTL.REFRESH_TOKEN);
+  }
+
+  //DELETE REFRESH TOKEN AND USER ID FROM REDIS ==> LOGOUT
+  private async deleteRefreshTokenFromRedis(userId: string){
+    await this.redisService.delete(RedisCacheKey.REFRESH_TOKEN(userId));
+  }
+
+  // GET REFRESH TOKEN FROM REDIS ==> VALIDATE REFRESH TOKEN
+  private async getRefreshTokenFromRedis(userId: string, refreshToken: string){
+    const storedRefreshToken = await this.redisService.get<string>(RedisCacheKey.REFRESH_TOKEN(userId));
+    
+      if(!storedRefreshToken || storedRefreshToken !== refreshToken){
+        throw new UnauthorizedException('Invalid token');
+      }
+  }
+
+
  
 }
 
