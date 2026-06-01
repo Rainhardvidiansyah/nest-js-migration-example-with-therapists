@@ -56,7 +56,7 @@ export class AuthController {
 
   @Public()
   @ResponseMessage('Token refreshed successfully')
-  @Post('refresh')
+  @Get('refresh')
   @HttpCode(HttpStatus.OK)
   async generateNewToken(@Req() req, @Res({ passthrough: true }) res) {
     
@@ -100,28 +100,26 @@ export class AuthController {
     };
   }
 
-  //TODO: LOGOUT ENDPOINT, invalidate refresh token, and implement token revocation logic.
+  //LOGOUT
+  //DO NOT FOR GET TO PASS THE ACCESS TOKEN TO USE THIS ENDPOINT.
   @ResponseMessage('Logout successful')
-  @Delete('/logout')
+  @Delete('logout')
   @HttpCode(HttpStatus.OK)
   async logOut(@Res({ passthrough: true }) res, @Req() req){
-
+    
     const refreshToken = req.cookies?.refresh_token;
-
+    
     if(!refreshToken){
       throw new UnauthorizedException('Invalid refresh token');
     }
 
     await this.authService.logoutUser(refreshToken);
 
-    res.clearCookie('refreshToken', {
+    res.clearCookie('refresh_token', {
       httpOnly: true,
       secure: false, 
       sameSite: 'strict',
     });
-
-    
-
   }
 
 }
