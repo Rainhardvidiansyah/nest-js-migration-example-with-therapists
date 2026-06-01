@@ -7,6 +7,7 @@ import { RegisterResponseDto } from './dto/registration-response.dto';
 import { ResponseMessage } from '../common/decorators/response-message.decorators';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { GenerateNewTokenResponse } from './dto/generate-new-token-response.dto';
+import { Throttle } from '@nestjs/throttler';
 
 
 @Controller('auth')
@@ -37,6 +38,7 @@ export class AuthController {
   
   @Public()
   @ResponseMessage('Login success')
+  @Throttle({ login: { limit: 5, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto, @Res({passthrough: true}) res) {
