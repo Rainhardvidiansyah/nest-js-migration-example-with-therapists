@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { RedisConfigService } from './redisconfig.service';
 import KeyvRedis from '@keyv/redis';
+import { RedisPubSubService } from './redis-pubsub.service';
 
 
 
@@ -35,10 +36,11 @@ import KeyvRedis from '@keyv/redis';
 ],
 
 exports: [ 
-  RedisConfigService, CacheModule],
+  RedisConfigService, CacheModule, RedisPubSubService],
   
 providers: [
-  RedisConfigService],
+ RedisPubSubService, RedisConfigService],
+ 
 })
 
 

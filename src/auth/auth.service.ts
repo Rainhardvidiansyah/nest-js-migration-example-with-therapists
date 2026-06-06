@@ -9,6 +9,8 @@ import { RegisterLocalDto } from './dto/register-local.dto';
 import { RedisConfigService } from 'src/redisconfig/redisconfig.service';
 import { RedisCacheKey } from 'src/common/constants/redis-cache-key.constant';
 import { RedisTTL } from 'src/common/constants/redis-ttl.constants';
+import { RedisPubSubService } from 'src/redisconfig/redis-pubsub.service';
+import { RedisChannel } from 'src/common/constants/redis-channel.constants';
 
 
 
@@ -24,12 +26,17 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly userService: UsersService,
-    private readonly redisService: RedisConfigService
+    private readonly redisService: RedisConfigService,
+    private readonly redisPubSubService: RedisPubSubService,
   ){}
 
 
   async createLocalUser(registerLocalDto: RegisterLocalDto) {
-    return this.userService.createLocalUser({email: registerLocalDto.email, password: registerLocalDto.password});
+    
+    const user = await this.userService.createLocalUser({email: registerLocalDto.email, password: registerLocalDto.password});
+
+    await this.redisPubSubService.publish(RedisChannel.USER_REGISTERED, {email: user.email});
+    return user;
   }
 
   //VALIDATE USER
@@ -173,6 +180,7 @@ export class AuthService {
       }
   }
 
+  //TODO: IMPLEMENT FORGET PASSWORD LOGIC
 
  
 }
