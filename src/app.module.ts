@@ -34,16 +34,15 @@ import { EmailModule } from './email/email.module';
         }),
       }),
     }),
-
-    ConfigModule.forRoot({ 
-        isGlobal: true,
-        envFilePath: [
-          `.env.${process.env.NODE_ENV || 'development'}`,
-          '.env.local',
-          '.env',
-        ],
-        ignoreEnvFile: false,
-      }),
+    
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [
+        `.env.${process.env.NODE_ENV || 'development'}`,
+        '.env'
+      ],
+      ignoreEnvFile: false,
+    }),
 
     EmailModule,
   ],
