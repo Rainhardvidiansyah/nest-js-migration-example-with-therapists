@@ -11,6 +11,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { EmailModule } from './email/email.module';
+import { QueueModule } from './queue/queue.module';
 
 
 @Module({
@@ -45,6 +46,8 @@ import { EmailModule } from './email/email.module';
     }),
 
     EmailModule,
+
+    QueueModule,
   ],
   providers: [
     {
