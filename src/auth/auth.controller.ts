@@ -3,7 +3,6 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { Public } from '../common/decorators/public-decorators';
 import { RegisterLocalDto } from './dto/register-local.dto';
-import { RegisterResponseDto } from './dto/registration-response.dto';
 import { ResponseMessage } from '../common/decorators/response-message.decorators';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { GenerateNewTokenResponse } from './dto/generate-new-token-response.dto';
@@ -18,22 +17,17 @@ export class AuthController {
 
   private readonly logger = new Logger(AuthController.name);
 
-
   constructor(private authService: AuthService) {}
 
 
-
   @ResponseMessage('User registered successfully')
-  @HttpCode(HttpStatus.CREATED)
+  @HttpCode(HttpStatus.ACCEPTED)
   @Public()
   @Post('register/local')
   async registerLocal(@Body() registerLocalDto: RegisterLocalDto) {
 
-    const userData = await this.authService.createLocalUser(registerLocalDto);
-    return new RegisterResponseDto(userData);
-  
+    await this.authService.createLocalUser(registerLocalDto);
   }
-
 
   
   @Public()
