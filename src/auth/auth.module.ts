@@ -8,12 +8,14 @@ import { DatabaseModule } from '../database/database.module';
 import { AuthGuard } from './auth.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { RedisConfigModule } from 'src/redisconfig/redis-config.module';
+import { QueueModule } from 'src/queue/queue.module';
 
 @Module({
   imports: [
     UsersModule,
     DatabaseModule,
     RedisConfigModule,
+    QueueModule,
 
 
     JwtModule.registerAsync({
