@@ -1,112 +1,87 @@
-import { UnauthorizedException } from '@nestjs/common';
-import { comparePassword } from 'src/utils/password.encoder';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConflictException } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
+
+import { UserRegistrationProducer } from 'src/queue/producers/user-registration.producer';
 import { UsersService } from 'src/users/users.service';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { EmailService } from 'src/email/email.service';
 import { RedisConfigService } from 'src/redisconfig/redisconfig.service';
-import { UsersEntity } from 'src/users/users.entity';
 
-
-
-jest.mock('src/utils/password.encoder');
-
-describe('AuthService - validateUser', () => {
+describe('AuthService', () => {
   let authService: AuthService;
-  let userService: jest.Mocked<UsersService>;
+  let userService: UsersService;
+  let registrationQueue: UserRegistrationProducer;
 
-  const mockUser = {
-  id: '1',
-  email: 'test@example.com',
-  password: 'hashed_password',
-  roles: [{ roleName: 'admin' }, { roleName: 'user' }],
-  provider: 'local',
-  providerId: null,
-  isActive: true,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-} as unknown as UsersEntity;
-
-  const mockLoginDto: LoginDto = {
-    email: 'test@example.com',
-    password: 'plain_password',
-  };
+  // Satu mock per dependency, tidak ada duplicate
+  const mockJwtService = { sign: jest.fn(), verify: jest.fn() };
+  const mockConfigService = { get: jest.fn() };
+  const mockUsersService = { getUserByEmail: jest.fn() };
+  const mockRedisConfigService = { getClient: jest.fn() };
+  const mockUserRegistrationProducer = { addUserRegistrationJob: jest.fn() };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-      AuthService,
-      { provide: JwtService, useValue: { sign: jest.fn(), verify: jest.fn() } },
-      { provide: ConfigService, useValue: { get: jest.fn() } },
-      { provide: UsersService, useValue: { findByEmail: jest.fn() } },
-      { provide: RedisConfigService, useValue: { set: jest.fn(), get: jest.fn() } },
-      { provide: EmailService, useValue: { sendEmail: jest.fn() } },
-    ],
-  }).compile();
+        AuthService,
+        { provide: JwtService,               useValue: mockJwtService },
+        { provide: ConfigService,            useValue: mockConfigService },
+        { provide: UsersService,             useValue: mockUsersService },
+        { provide: RedisConfigService,       useValue: mockRedisConfigService },
+        { provide: UserRegistrationProducer, useValue: mockUserRegistrationProducer },
+      ],
+    }).compile();
 
     authService = module.get<AuthService>(AuthService);
-    userService = module.get(UsersService);
-
-    // Mock private functions
-    jest.spyOn(authService as any, 'generateToken').mockResolvedValue({ access_token: 'mock_access_token' });
-    jest.spyOn(authService as any, 'generateRefreshToken').mockResolvedValue({ refresh_token: 'mock_refresh_token' });
-    jest.spyOn(authService as any, 'setRefreshToken').mockResolvedValue(undefined);
+    userService = module.get<UsersService>(UsersService);
+    registrationQueue = module.get<UserRegistrationProducer>(UserRegistrationProducer);
   });
 
-  afterEach(() => jest.clearAllMocks());
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
 
-  // ✅ Happy path
-  it('should return user data + token if credentials are valid',async () => {
-    userService.findByEmail.mockResolvedValue(mockUser);
-    (comparePassword as jest.Mock).mockResolvedValue(true);
+  // ─────────────────────────────────────────────
+  describe('createLocalUser', () => {
 
-    const result = await authService.validateUser(mockLoginDto);
+    // ✅ CASE 1: Email belum ada → job masuk queue
+    it('should add job to queue when email does not exist', async () => {
+      const dto = { email: 'budi@email.com', password: 'rahasia123' };
+      mockUsersService.getUserByEmail.mockResolvedValue(null);
 
-    expect(result).toEqual({
-      id: '1',
-      email: 'test@example.com',
-      roles: ['admin', 'user'],
-      access_token: 'mock_access_token',
-      refresh_token: 'mock_refresh_token',
+      await authService.createLocalUser({...dto, confirmPassword:dto.password});
+
+      expect(userService.getUserByEmail).toHaveBeenCalledWith(dto.email);
+      expect(registrationQueue.addUserRegistrationJob).toHaveBeenCalledWith({
+        email: dto.email,
+        password: dto.password,
+      });
     });
+
+    // ❌ CASE 2: Email sudah ada →던지지 ConflictException
+    it('should throw ConflictException when email already exists', async () => {
+      const dto = { email: 'existing@email.com', password: 'rahasia123' };
+      mockUsersService.getUserByEmail.mockResolvedValue({ id: 1, email: dto.email });
+
+      await expect(authService.createLocalUser({...dto, confirmPassword:dto.password})).rejects.toThrow(
+        ConflictException,
+      );
+      await expect(authService.createLocalUser({...dto, confirmPassword:dto.password})).rejects.toThrow(
+        'Email already exists',
+      );
+    });
+
+    // 🚫 CASE 3: Email sudah ada → queue TIDAK boleh dipanggil
+    it('should NOT call addUserRegistrationJob when email already exists', async () => {
+      const dto = { email: 'existing@email.com', password: 'rahasia123' };
+      mockUsersService.getUserByEmail.mockResolvedValue({ id: 1, email: dto.email });
+
+      await authService.createLocalUser({...dto, confirmPassword:dto.password}).catch(() => {});
+
+      expect(registrationQueue.addUserRegistrationJob).not.toHaveBeenCalled();
+    });
+
   });
-
-
-
-  // ❌ Invalid Password
-  it('should throw UnauthorizedException if password is invalid', async () => {
-    userService.findByEmail.mockImplementation(() => { throw new UnauthorizedException('Invalid email or password');});
-    (comparePassword as jest.Mock).mockResolvedValue(false);
-
-    await expect(authService.validateUser(mockLoginDto)).rejects.toThrow(UnauthorizedException);
-  });
-
-
-
-  // ❌ Email not found
-  it('should throw UnauthorizedException if user is not found', async () => {
-    userService.findByEmail.mockImplementation(() => { throw new UnauthorizedException('Invalid email or password'); });
-    (comparePassword as jest.Mock).mockResolvedValue(false);
-
-    await expect(authService.validateUser(mockLoginDto)).rejects.toThrow(UnauthorizedException);
-  });
-
-
-
-  // ✅ Make sure generateToken, generateRefreshToken, setRefreshToken called in the right way
-  it('should call generateToken and generateRefreshToken with correct user data', async () => {
-    userService.findByEmail.mockResolvedValue(mockUser);
-    (comparePassword as jest.Mock).mockResolvedValue(true);
-
-    await authService.validateUser(mockLoginDto);
-
-    expect(authService['generateToken']).toHaveBeenCalledWith('1', 'test@example.com', ['admin', 'user']);
-    expect(authService['generateRefreshToken']).toHaveBeenCalledWith('1', 'test@example.com', ['admin', 'user']);
-    expect(authService['setRefreshToken']).toHaveBeenCalledWith('1', 'mock_refresh_token');
-  });
-
+  // ─────────────────────────────────────────────
 
 });
