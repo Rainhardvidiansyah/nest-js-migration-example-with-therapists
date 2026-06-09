@@ -40,7 +40,7 @@ export class AuthService {
         throw new ConflictException('Email already exists');
     }
     
-    this.registrationQueue.addUserRegistrationJob({email: registerLocalDto.email, password: registerLocalDto.password});
+    await this.registrationQueue.addUserRegistrationJob({email: registerLocalDto.email, password: registerLocalDto.password});
     
   }
 
