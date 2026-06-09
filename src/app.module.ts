@@ -7,10 +7,10 @@ import { DatabaseModule } from './database/database.module';
 import { RolesModule } from './roles/roles.module';
 import { ProductsModule } from './products/products.module';
 import { RedisConfigModule } from './redisconfig/redis-config.module';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { EmailModule } from './email/email.module';
+import { QueueModule } from './queue/queue.module';
 
 
 @Module({
@@ -34,25 +34,21 @@ import { EmailModule } from './email/email.module';
         }),
       }),
     }),
-
-    ConfigModule.forRoot({ 
-        isGlobal: true,
-        envFilePath: [
-          `.env.${process.env.NODE_ENV || 'development'}`,
-          '.env.local',
-          '.env',
-        ],
-        ignoreEnvFile: false,
-      }),
+    
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [
+        `.env.${process.env.NODE_ENV || 'development'}`,
+        '.env'
+      ],
+      ignoreEnvFile: false,
+    }),
 
     EmailModule,
+
+    QueueModule,
   ],
-  providers: [
-    {
-      provide: APP_GUARD, 
-      useClass: ThrottlerGuard, // Apply ThrottlerGuard globally
-    },
-  ],
+  providers: [],
 
   
 })

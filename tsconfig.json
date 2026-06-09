@@ -1,3 +1,4 @@
+
 {
   "compilerOptions": {
     "module": "nodenext",
@@ -16,20 +17,17 @@
     "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./",          
-    "paths": {               
+    "rootDir": "./src",
+    "paths": {
       "*": ["./*"]
     },
-    "ignoreDeprecations": "5.0", 
-    "incremental": true,
+    "ignoreDeprecations": "6.0",
+    "incremental": false,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false
   },
-  "include": [
-    "src/**/*",
-    "db/migrations/**/*"
-  ]
+  "include": ["src/**/*"]
 }
