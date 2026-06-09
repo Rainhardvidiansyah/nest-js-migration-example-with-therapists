@@ -1,4 +1,4 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { JwtService } from '@nestjs/jwt';
@@ -9,8 +9,7 @@ import { RegisterLocalDto } from './dto/register-local.dto';
 import { RedisConfigService } from 'src/redisconfig/redisconfig.service';
 import { RedisCacheKey } from 'src/common/constants/redis-cache-key.constant';
 import { RedisTTL } from 'src/common/constants/redis-ttl.constants';
-import { RedisPubSubService } from 'src/redisconfig/redis-pubsub.service';
-import { RedisChannel } from 'src/common/constants/redis-channel.constants';
+import { UserRegistrationProducer } from 'src/queue/producers/user-registration.producer';
 
 
 
@@ -27,16 +26,22 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly userService: UsersService,
     private readonly redisService: RedisConfigService,
-    private readonly redisPubSubService: RedisPubSubService,
+    private readonly registrationQueue: UserRegistrationProducer
   ){}
 
 
+
+  //REGISTER USER LOCAL -> EMAIL AND PASSWORD ONLY
   async createLocalUser(registerLocalDto: RegisterLocalDto) {
     
-    const user = await this.userService.createLocalUser({email: registerLocalDto.email, password: registerLocalDto.password});
-
-    await this.redisPubSubService.publish(RedisChannel.USER_REGISTERED, {email: user.email});
-    return user;
+    const isEmailExisting = await this.userService.getUserByEmail(registerLocalDto.email);
+    
+    if(isEmailExisting){
+        throw new ConflictException('Email already exists');
+    }
+    
+    this.registrationQueue.addUserRegistrationJob({email: registerLocalDto.email, password: registerLocalDto.password});
+    
   }
 
   //VALIDATE USER
