@@ -25,7 +25,9 @@ export class UserRegistrationProcessor extends WorkerHost{
     console.log('=== PROCESSOR IS CALLED ===');
     console.log('=== job name:', job.name);
     console.log('=== job data:', job.data);
+    console.log('=== job id:', job.id);
 
+    
     switch(job.name){
       case 'user-registration-job':
         await this.handleRegistration(job);

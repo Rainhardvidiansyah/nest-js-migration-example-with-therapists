@@ -25,7 +25,11 @@ import { UserRegistrationProcessor } from './processors/user-registration.proces
     }),
 
     BullModule.registerQueue({
-      name: QueueName.USER_REGISTRATION
+      name: QueueName.USER_REGISTRATION,
+      defaultJobOptions: {
+        removeOnFail: false,
+        removeOnComplete: false
+      }
     }),
   ],
   
