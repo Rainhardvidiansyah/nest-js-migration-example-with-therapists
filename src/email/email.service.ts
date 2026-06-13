@@ -35,9 +35,10 @@ export class EmailService implements OnModuleInit{
         text: message
       });
     } catch (error) {
-      console.error('Error sending email:', error);
-      throw new Error('Failed to send email');
+      if(error instanceof Error){
+        this.logger.warn(`Failed to send email, with message: ${error.message}`);
+      }
     }
-
   }
+  
 }
