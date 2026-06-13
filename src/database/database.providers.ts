@@ -20,6 +20,12 @@ export const DatabaseProviders = [{
            
             synchronize: false,
             logging: false,
+            extra: {
+                max: 20,
+                min: 2,
+                idleTimeoutMillis: 30000,
+                connectionTimeoutMillis: 2000,
+            }
         });
 
         console.log("Data Source has been initialized!");
