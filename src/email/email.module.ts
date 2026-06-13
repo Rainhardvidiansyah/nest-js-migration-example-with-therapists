@@ -12,10 +12,11 @@ import { RedisConfigModule } from 'src/redisconfig/redis-config.module';
       useFactory: async (configService: ConfigService) => ({
         transport: {
           host: configService.get<string>('EMAIL_HOST'),
-          auth: {
-            user: configService.get<string>('EMAIL_USER'),
-            pass: configService.get<string>('EMAIL_PASSWORD'),
-          },
+          port: configService.get<number>('EMAIL_PORT'),
+          // auth: { //When using the real email server, activate this auth. This is commented as I am using mailtip docker which no need to use auth.... 
+          //   user: configService.get<string>('EMAIL_USER'),
+          //   pass: configService.get<string>('EMAIL_PASSWORD'),
+          // },
         },
         defaults: {
           from: `"No Reply" <${configService.get<string>('EMAIL_FROM')}>`,

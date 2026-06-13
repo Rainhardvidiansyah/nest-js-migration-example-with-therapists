@@ -22,12 +22,7 @@ export class UserRegistrationProcessor extends WorkerHost{
 
 
   async process(job: Job<any, any, string>): Promise<any>{
-    console.log('=== PROCESSOR IS CALLED ===');
-    console.log('=== job name:', job.name);
-    console.log('=== job data:', job.data);
-    console.log('=== job id:', job.id);
 
-    
     switch(job.name){
       case 'user-registration-job':
         await this.handleRegistration(job);
@@ -37,21 +32,22 @@ export class UserRegistrationProcessor extends WorkerHost{
 
 
   private async handleRegistration(job: Job){
-    const {email, password} = job.data;
+    const {email, password} = job.data; //put email and password at queue. Then, send them to createLocalUser
 
-    try{
-      //Save USER HERE. ASSUME CONCURRENT USER DOING REGISTRATION AT THE SAME TIME
-      const user = await this.userService.createLocalUser({email: email, password: password});
+    //Save USER HERE. ASSUME CONCURRENT USER DOING REGISTRATION AT THE SAME TIME
+    const user = await this.userService.createLocalUser({email: email, password: password});
+    //send email
+      await this.sendEmail(user.email);
 
-      //send email
-      await this.redisPubSubService.publish(RedisChannel.USER_REGISTERED, {email: user.email})
+      this.logger.log(`Registering user: ${user.email}`);
+  }
 
-      this.logger.log(`Registering user: ${email}`);
 
-    }catch(error){
-      this.logger.error(`Failed to register user: ${email}`, error instanceof Error ? error.message : String(error));
-      throw error
-    }
+  private async sendEmail(userEmail: string){
+
+    this.logger.log(`TRY SENDING AN EMAIL TO ${userEmail}`);
     
+    await this.redisPubSubService.publish(RedisChannel.USER_REGISTERED, {email: userEmail});
+   
   }
 }
