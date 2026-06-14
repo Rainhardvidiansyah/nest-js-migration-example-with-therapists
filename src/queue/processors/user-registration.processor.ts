@@ -1,9 +1,9 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
 import { Job } from "bullmq";
+import { Email_Subject } from "src/common/constants/email-subject.constants";
 import { QueueName } from "src/common/constants/queue.constant";
-import { RedisChannel } from "src/common/constants/redis-channel.constants";
-import { RedisPubSubService } from "src/redisconfig/redis-pubsub.service";
+import { EmailService } from "src/email/email.service";
 import { UsersService } from "src/users/users.service";
 
 
@@ -12,13 +12,11 @@ export class UserRegistrationProcessor extends WorkerHost{
   
   constructor(
     private readonly userService: UsersService, 
-    private readonly redisPubSubService: RedisPubSubService,)
-    {super();
-
+    private readonly emailService: EmailService){
+      super();
     }
 
   private logger = new Logger(UserRegistrationProcessor.name);
-
 
 
   async process(job: Job<any, any, string>): Promise<any>{
@@ -36,18 +34,13 @@ export class UserRegistrationProcessor extends WorkerHost{
 
     //Save USER HERE. ASSUME CONCURRENT USER DOING REGISTRATION AT THE SAME TIME
     const user = await this.userService.createLocalUser({email: email, password: password});
+
+    
     //send email
-      await this.sendEmail(user.email);
+    await this.emailService.sendEmail(user.email, Email_Subject.USER_REGISTRATION, 
+    {name: user.email, activationLink: 'link activation should be put here'});
 
       this.logger.log(`Registering user: ${user.email}`);
   }
 
-
-  private async sendEmail(userEmail: string){
-
-    this.logger.log(`TRY SENDING AN EMAIL TO ${userEmail}`);
-    
-    await this.redisPubSubService.publish(RedisChannel.USER_REGISTERED, {email: userEmail});
-   
-  }
 }
