@@ -4,14 +4,14 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { QueueName } from 'src/common/constants/queue.constant';
 import { UserRegistrationProducer } from './producers/user-registration.producer';
 import { UsersModule } from 'src/users/users.module';
-import { RedisConfigModule } from 'src/redisconfig/redis-config.module';
 import { UserRegistrationProcessor } from './processors/user-registration.processor';
+import { EmailModule } from 'src/email/email.module';
 
 @Module({
 
   imports: [
     UsersModule,
-    RedisConfigModule,
+    EmailModule,
 
     BullModule.forRootAsync({
       imports: [ConfigModule],
