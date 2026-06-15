@@ -17,6 +17,7 @@ export class RedisConfigService {
   async delete(key: string): Promise<void> {
     try {
       await this.cacheManager.del(key);
+      this.logger.log(`Key - ${key} has been deleted`);
     } catch (error) {
       this.logger.error(`Fail to delete cache key: ${key}`, error);
     }
