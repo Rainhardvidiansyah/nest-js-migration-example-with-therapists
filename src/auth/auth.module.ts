@@ -9,6 +9,7 @@ import { AuthGuard } from './auth.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { RedisConfigModule } from 'src/redisconfig/redis-config.module';
 import { QueueModule } from 'src/queue/queue.module';
+import { TokenService } from './token.service';
 
 @Module({
   imports: [
@@ -30,7 +31,11 @@ import { QueueModule } from 'src/queue/queue.module';
     }),
     
   ],
-  providers: [AuthService, {provide: APP_GUARD, useClass: AuthGuard} ],
+  providers: [
+    AuthService, 
+    {provide: APP_GUARD, useClass: AuthGuard},
+    TokenService
+  ],
   controllers: [AuthController],
 })
 export class AuthModule {}
