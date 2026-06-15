@@ -17,7 +17,7 @@ export class AuthController {
 
   private readonly logger = new Logger(AuthController.name);
 
-  constructor(private authService: AuthService) {}
+  constructor(private readonly authService: AuthService) {}
 
 
   @ResponseMessage('User registered successfully')
@@ -62,6 +62,7 @@ export class AuthController {
       throw new UnauthorizedException('Refresh token not found');
     }
 
+    // const validatedToken = await this.authService.validateRefreshToken(refreshToken);
     const validatedToken = await this.authService.validateRefreshToken(refreshToken);
 
     const payload = {
@@ -70,7 +71,8 @@ export class AuthController {
       roles: validatedToken.roles, 
     };
 
-    const newAccessToken = await this.authService.generateToken(
+
+    const newAccessToken = await this.authService.generateNewToken(
       payload.id,
       payload.email,
       payload.roles,
@@ -109,7 +111,7 @@ export class AuthController {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    await this.authService.logoutUser(refreshToken);
+    await this.authService.logOutUser(refreshToken);
 
     res.clearCookie('refresh_token', {
       httpOnly: true,
