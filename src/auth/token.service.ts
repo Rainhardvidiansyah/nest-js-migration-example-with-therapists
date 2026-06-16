@@ -63,7 +63,7 @@ export class TokenService{
     }
 
     try{
-      const decodedRefreshToken = await this.jwtService.verify(refreshToken,
+      const decodedRefreshToken = await this.jwtService.verifyAsync(refreshToken,
         {
           secret: this.configService.get<string>("REFRESH_TOKEN_SECRET"),
         }
@@ -91,7 +91,7 @@ export class TokenService{
   async logoutUser(refreshToken: string): Promise<void>{
 
     try {
-      const decodedRefreshToken = await this.jwtService.verify(refreshToken,
+      const decodedRefreshToken = await this.jwtService.verifyAsync(refreshToken,
         {
           secret: this.configService.get<string>("REFRESH_TOKEN_SECRET"),
         }
