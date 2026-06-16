@@ -62,7 +62,6 @@ export class AuthController {
       throw new UnauthorizedException('Refresh token not found');
     }
 
-    // const validatedToken = await this.authService.validateRefreshToken(refreshToken);
     const validatedToken = await this.authService.validateRefreshToken(refreshToken);
 
     const payload = {
@@ -71,7 +70,6 @@ export class AuthController {
       roles: validatedToken.roles, 
     };
 
-
     const newAccessToken = await this.authService.generateNewToken(
       payload.id,
       payload.email,
@@ -79,7 +77,6 @@ export class AuthController {
     );
 
     return new GenerateNewTokenResponse(payload, newAccessToken.access_token)
-
   }
   
   
@@ -99,7 +96,7 @@ export class AuthController {
   }
 
   //LOGOUT
-  //DO NOT FOR GET TO PASS THE ACCESS TOKEN TO USE THIS ENDPOINT.
+  //DO NOT FORGET TO PASS THE ACCESS TOKEN TO USE THIS ENDPOINT.
   @ResponseMessage('Logout successful')
   @Delete('logout')
   @HttpCode(HttpStatus.OK)
