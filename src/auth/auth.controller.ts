@@ -1,12 +1,14 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Logger, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { Public } from '../common/decorators/public-decorators';
+import { Public } from '../common/decorators/public.decorators';
 import { RegisterLocalDto } from './dto/register-local.dto';
 import { ResponseMessage } from '../common/decorators/response-message.decorators';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { GenerateNewTokenResponse } from './dto/generate-new-token-response.dto';
 import { Throttle } from '@nestjs/throttler';
+import { Roles } from 'src/common/decorators/roles.decorators';
+import { Role } from 'src/common/enums/role.enum';
 
 
 @Controller('auth')
@@ -82,6 +84,7 @@ export class AuthController {
   
 
   @Get('profile')
+  @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.OK)
   async profile(@Req() req) {
     const user = req.user; //Assuming the user information is attached to the request object by an authentication middleware
