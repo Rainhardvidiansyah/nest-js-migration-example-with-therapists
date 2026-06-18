@@ -1,10 +1,10 @@
-/* eslint-disable prettier/prettier */
 import { BadRequestException, ConflictException, Inject, Injectable } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { UsersEntity } from './users.entity';
 import { encodePassword } from '../utils/password.encoder';
 import { CreateUserLocalDto } from './dto/create-user-local.dto';
 import { RolesService } from '../roles/roles.service';
+import { CustomerService } from 'src/customer/customer.service';
 
 
 @Injectable()
@@ -14,6 +14,7 @@ export class UsersService {
     constructor(
         @Inject('DATA_SOURCE') private readonly dataSource: DataSource,
         @Inject('USERS_REPOSITORY') private userRepository: Repository<UsersEntity>,
+        private readonly customerProfileService: CustomerService,
         private readonly rolesService: RolesService
         ) {}
 
@@ -21,23 +22,45 @@ export class UsersService {
     //CREATE NEW USER FOR LOCAL REGISTRATION
     async createLocalUser(createUserLocalDto: CreateUserLocalDto): Promise<UsersEntity> {
 
-        const isEmailExisting = await this.getUserByEmail(createUserLocalDto.email);
-
-        if(isEmailExisting){
+      const isEmailExisting = await this.getUserByEmail(createUserLocalDto.email);
+    
+        if(isEmailExisting) {
             throw new ConflictException('Email already exists');
         }
-
+        
         if (!createUserLocalDto.password) {
             throw new BadRequestException('Password is required for local provider');
         }
+
         const hashedPassword = await encodePassword(createUserLocalDto.password);
         
         const role = await this.rolesService.findRoleByRoleName('customer');
 
-        const newUser = this.userRepository.create({ ...createUserLocalDto, 
-            provider: "local", password: hashedPassword, roles: [role] });
-                
-        return this.userRepository.save(newUser);
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try{
+        const newUser = await queryRunner.manager.save(UsersEntity, {
+          email: createUserLocalDto.email,
+          provider: 'local',
+          password: hashedPassword,
+          roles: [role]
+        });
+
+        await this.customerProfileService.createCustomerProfiles(newUser, queryRunner);
+
+        await queryRunner.commitTransaction();
+
+        return newUser;
+
+        }catch(error){
+        await queryRunner.rollbackTransaction();
+          throw error;
+
+        } finally{
+        await queryRunner.release();
+        }
     }
 
 
