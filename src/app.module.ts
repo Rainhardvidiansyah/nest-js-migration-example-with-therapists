@@ -11,6 +11,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { EmailModule } from './email/email.module';
 import { QueueModule } from './queue/queue.module';
+import { CustomerModule } from './customer/customer.module';
 
 
 @Module({
@@ -47,6 +48,8 @@ import { QueueModule } from './queue/queue.module';
     EmailModule,
 
     QueueModule,
+
+    CustomerModule,
   ],
   providers: [],
 
